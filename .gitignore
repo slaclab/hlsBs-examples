@@ -59,6 +59,7 @@ linux*
 *.pdi
 *.bif
 *.elf
+*.dcp
 
 # AI Agents
 .vscode/
