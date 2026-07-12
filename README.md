@@ -1,5 +1,5 @@
 # hlsBs Examples and Tutorial
-This tutorial shows how to use the HLS build system tools using 5 examples HLS projects of increasing complexity, cleverly labeled *ex0, ex1, ex2, e3, ex4*.
+This tutorial shows how to use the HLS build system tools using 6 example HLS projects of increasing complexity, cleverly labeled *ex0, ex1, ex2, ex3, ex4, ex5*.
 
 |  Ex | Demonstrates |
 | :-- | :------ |
@@ -8,9 +8,27 @@ This tutorial shows how to use the HLS build system tools using 5 examples HLS p
 | ex2 | Uses 2 build descriptions and 2 FPGAs |
 | ex3 | Generating components by wildcarding include files |
 | ex4 | Generating components with #defines values |
+| ex5 | Combining #include wildcarding and #define values |
 
 
 This documentation is not meant to be complete. See the READme.md in **hlsBs** subdirectory of `ruckus` for more of a reference style documentation.
+
+## Output layout (build/ and ip/)
+
+Each example builds into a per-example `build/` and `ip/` directory, matching the
+`vitis-unified-hls-python-cli-dev` template and `simple-hlsBs-example`:
+
+- `<ex>/build/` — the Vitis workspace, the generated `.cfg` file(s), and the DCP
+  rename journal/log (`build/dgn/`). Git-ignored (via `build*`) and removed by a clean.
+- `<ex>/ip/` — the packaged IP: `<component>.zip` and the renamed `<component>.dcp`.
+
+This is set in each `ex*/project/Streams.py` via `get_workspace` (→ `build/`), the
+`ConfigurationName` template (→ `build/`), and `get_ip` (`dir` → `ip/`, `dgn_dir` →
+`build/dgn/`).
+
+> Note: the command transcripts later in this document predate this change and still
+> show the older `products/ws`, `products/cfg`, and `products/ip/<version>` paths. The
+> workflow is identical — only the output directories moved to `build/` and `ip/`.
 
 ## Where is the code?
 The code is in the `hlsBs-examples` repository on `github` / `slaclab`. It uses `ruckus` as a submodule, so be sure to specify *--recursive* when cloning it.
@@ -47,7 +65,7 @@ $ hlsRun --synthesis      # Create the synthesis
 $ hlsRun --cosim          # Run the CoSim
 $ hlsRun --package        # Create a .dcp
 $ hlsRun --implementation # Create the implementation (the .zip file)
-$ hlsRun --ip             # Rename the .dcp and augment the permissiable FPGA families
+$ hlsRun --ip             # Rename the .dcp and augment the permissible FPGA families
 ```
 Any combination of these stages can be run with a single **hlsRun** command
 ``` bash
@@ -77,12 +95,15 @@ This tutorial uses the following layout:
 ``` bash
 hlsBs-examples/
                firmware/
-                        scripts/setup_env.sh
-                        shared/
-                               include/streams/    -- Shared common includes
-                                       Streams.hh
-                               src/streams/        -- Shared common source code
-                                       Streams.cc
+                        scripts/setup_env.sh       -- Project setup script (sourced at login)
+                        include/streams/           -- Shared common includes
+                                Streams.hh
+                        include/seeds/             -- Compile-time seed includes (used by ex3 and ex5)
+                                Seed1.hh
+                                Seed2.hh
+                        src/streams/               -- Shared common source code
+                                StreamsHls.cc      -- HLS (synthesizable) source
+                                StreamsTb.cc       -- C testbench (csim/cosim)
                         ex0/
                             project/Streams.py     -- The ex0 project file
                         ex1/
@@ -93,12 +114,15 @@ hlsBs-examples/
                             project/Streams.py     -- The ex3 project file
                         ex4/
                             project/Streams.py     -- The ex4 project file
+                        ex5/
+                            project/Streams.py     -- The ex5 project file
+                        submodules/ruckus/         -- ruckus submodule (contains hlsBs)
 ```
 
-Many setups will only have 1 project, but this tutorial has 5.
+Many setups will only have 1 project, but this tutorial has 6.
 
 ## Creating your own project
-The above is a recommended **hlsBs** layout.  While **hlsBs** can accomodate almost any directory structure, if you are at a loss where to start, **ruckus**, the same repository that **hlsBs** lives in, contains a nice script to produce a very similar directory layout. It is a great place to start and tailor to your needs.
+The above is a recommended **hlsBs** layout.  While **hlsBs** can accommodate almost any directory structure, if you are at a loss where to start, **ruckus**, the same repository that **hlsBs** lives in, contains a nice script to produce a very similar directory layout. It is a great place to start and tailor to your needs.
 
 By default, **hlsBs** assumes the project file, a file necessary to take full advantage of **hlsBs**'s capabilities, is located in the **/project** directory directly under the project root. The project file name can be named anything; select something meaningful, not, for example 'Project.py'.
 
@@ -106,7 +130,7 @@ By default, **hlsBs** assumes the project file, a file necessary to take full ad
 
 **SUGGESTIONS:**
 - If you have more than one project under a common directory/repo, isolate the shared code as above.
-- Create a root directory for each project, here these, *ex0, ex1, ex2, ex3, ex4*.
+- Create a root directory for each project, here these, *ex0, ex1, ex2, ex3, ex4, ex5*.
 - Create a directory called *project/* under the project root directory to hold the Project definition file.
 	- More on the Project file later.
 - Create any project code specific directories in the same fashion as the shared code but under the project root.
@@ -117,8 +141,12 @@ By default, **hlsBs** assumes the project file, a file necessary to take full ad
 # Setup
 This is one of many different ways to do the setup.  It comes down to personal preference and project needs.  It has been found convenient and **hlsBs** friendly. A design goal was to have as few references to absolute file paths as possible and having them well contained. **hlsBs** requires only two such paths. This is the next's section topic.
 
+> **Validated:** This tutorial was test-driven end-to-end (csim -> synthesis -> cosim -> package -> implementation -> ip, on every component of ex0-ex5) with **Vitis 2025.2** at SLAC. The example transcripts below show `2024.2` for illustration; substitute whatever Vitis version (>= 2023.2) you have installed via `hlsVersion <version>`.
+
 ## Define Site and User Specifics
-Define 2 alliases. Neither can be part of the `hlsBs-examples` repository, since they must contain absolute file paths specific to the site and the project.
+Define 2 aliases. In general neither can be part of the `hlsBs-examples` repository, since they must contain absolute file paths specific to the site and the project.
+
+> **SLAC convenience:** As a deliberate exception for this *examples* repo, `firmware/scripts/setup_env.sh` already exports a sensible default `HLSBS_XILINX_SETUP` (the SLAC Xilinx install path) *only if it is not already set*. This makes the `hlsLocate` alias optional at SLAC — the tutorial runs out-of-the-box. Off-site users (or anyone with a different install location) should still define `hlsLocate` (or export `HLSBS_XILINX_SETUP`) to point at their Xilinx tree; an existing value always wins over the built-in default.
 
 - hlsLocate - locates the directory tree(s) where the Xilinx installations are found.
 	- The location of Xilinx installations is site specific.
@@ -131,17 +159,17 @@ Define 2 alliases. Neither can be part of the `hlsBs-examples` repository, since
 This is used by **hlsVersion** to locate and source the settings script for a specified Vitis Version.
 > For definitiveness, the values used are what would be used at SLAC.
 ```
-alias hlsLocate='export HLSBS_XILINX_SETUP=/sdf/group/faders/tools/xilinx/\$\{version\}'
+alias hlsLocate='export HLSBS_XILINX_SETUP=/sdf/group/faders/tools/xilinx/${version}'
 ```
 > Locating the correct settings involves a file search. Overly broad searches can be slow. The variable **version** translates to the Vitis version requested by **hlsVersion**
 
-**Caution:** Note the escaping when specifying **version**.  This defers the translation till the invocation by **hlsVersion**.
+**Caution:** Note the single quotes and the literal `${version}` token. The single quotes keep the shell from expanding `${version}` at definition time, deferring it until **hlsVersion** substitutes the requested version.
 
 ### hlsBs-examples
 This sources the project setup script.
 
 ``` bash
-alias hlsBs-examples="source <path/to>/hlsBs-examples/firmware/scripts/setup_env.
+alias hlsBs-examples="source <path/to>/hlsBs-examples/firmware/scripts/setup_env.sh"
 ```
 
 **RECOMMENDATIONS:**
@@ -171,7 +199,7 @@ $ exSelect ex0      # Select the ex0 project
 
 #### hlsWs, hlsCfg, One-time each new project setup or at a structural change to the project, **e.g.** new or changed configuration
 
-The target project and Vits version are now establish
+The target project and Vitis version are now established
 ``` bash
 $ hlsWs  --create # Create the workspace
 $ hlsCfg --create # Create the configuration files and components
@@ -186,7 +214,7 @@ $ hlsRun --synthesis      # Create the synthesis
 $ hlsRun --cosim          # Run the CoSim
 $ hlsRun --package        # Create a .dcp
 $ hlsRun --implementation # Create the implementation (the .zip file)
-$ hlsRun --ip             # Rename the .dcp and augment the permissiable FPGA families
+$ hlsRun --ip             # Rename the .dcp and augment the permissible FPGA families
 ```
 
 ####  hlsVersion, (optional) changes Vitis Version, then redo the above sequence
@@ -374,7 +402,7 @@ $ hlsRun --csim=m
 The first time this is run on a new component, Vitis is needed to create the make file.
 > The Vitis output is too extensive and uninformative and not included here.
 
-The *--csim* qualified accepts a list of *clean,make,run* to match your needs. They can be abbreivated to 1 character.
+The *--csim* qualified accepts a list of *clean,make,run* to match your needs. They can be abbreviated to 1 character.
 
 Once the make file has been created, **hlsBs** just uses it. This is much faster.  Try a *clean* and *make* just to observe. The *--verbose* flag was added to show what happened.
 
@@ -480,7 +508,7 @@ Given the time involved in producing the original *.dcp* and *.zip*, by just mod
 
 
 ## The Project File
-This important file contains all the information necessary to produce the various products, *i.e.* the worksapce, configuration files, components, *etc* and where to place them in the directory structure.
+This important file contains all the information necessary to produce the various products, *i.e.* the workspace, configuration files, components, *etc* and where to place them in the directory structure.
 
 
 The general features are documented in the *README.md* found in the *ruckus hlsBs* directory. But, much as one cannot document what a programming language (it is open-ended) can do, it is impossible to document all that can be done with the Project file. The fallback is to present a number of examples showing what is possible.  Hopefully the concepts are orthogonal, so mixing and matching is straight-forward.
@@ -506,6 +534,8 @@ The examples are
 		- The *#include* method is open-ended. Adding more include files that satisfy the wildcarding generates new components without touching any code or the Project file.
 		- The *#define* requires cooperation between the values defined in the Project file and their use in the code.
 	- Both have their uses and can be used separately or in combination.
+
+- *ex5* - Combines the *ex3* and *ex4* techniques in one project, taking the cartesian product of seed include files, *#define* values and FPGAs (2 x 2 x 2 = 8 components).
 
 Having done *ex0*, now explore *ex1*.
 
@@ -812,7 +842,7 @@ Shutting down Vitis server running on port '40481'
 New components can be created just by adding more Seed*.hh files, *e.g.* Seed3.hh. This is a selling point of using compile-time loaded include files - new components can be created without touching the base code. In some sense, the base code acts as a super-template to construct variations.
 
 #### hlsRun
-Makie all the *csim.exe*'s with `hlsRun --csim=m`, then run only the stream-Seed2-5ns component
+Make all the *csim.exe*'s with `hlsRun --csim=m`, then run only the stream-Seed2-5ns component
 
 ``` bash
 $ hlsRun '*Seed1-5ns' --csim=r --verbose
@@ -950,6 +980,58 @@ INFO [HLS SIM]: The maximum depth reached by any hls::stream() instance in the d
 In the output, the test bench has printed
 - No include file was used - the *incval* seed was defaulted internally to 0
 - The define seed value, *defval* is 10
+
+## ex5 - Combining `#include` and `#define`
+The **Final Word** below notes that builds, FPGAs, `#include`s and `#define`s can be combined *in any mix*. *ex5* demonstrates this by merging the *ex3* (`#include` wildcarding) and *ex4* (`#define` value) techniques into a single project. The shared testbench already understands both `STREAM_SEED` and `DEF_SEED`, so no source code changes are needed.
+
+Select the project and create its workspace
+``` bash
+$ exSelect ex5
+$ hlsWs --create
+```
+
+The project defines both a wildcarded set of seed include files (as in *ex3*) and a list of `#define` values (as in *ex4*), then binds them together with the FPGAs. Every class prefix (*build*, *seed*, *def_seed*, *fpga*) must be unique.
+``` python
+    components   = (Product.Builds ('build', [['stream', build]]),
+                    Product.Files  ('seed',     stream_seeds),
+                    Product.Values ('def_seed',      (10, 20)),
+                    Product.Fpgas  ('fpga',           fpgas))
+```
+The result is the cartesian product of every class:
+- 1 build (*stream*)
+- 2 seed files (*Seed1*, *Seed2*)
+- 2 `#define` values (*10*, *20*)
+- 2 FPGAs (*5ns*, *6ns*)
+
+yielding **8** components. The configuration name template includes a symbol from each varying class so every path is unique:
+``` python
+    cfg_template = (os.path.join (project.root,
+                                  'build',
+                                  '{build_id}-{seed_name}-def{def_seed}-{fpga_id}.cfg'))
+```
+
+### hlsCfg
+``` bash
+$ hlsCfg --create
+==============================================================================
+Creating Configuration + Component
+----------------------------------
+Components    : *
+
+Creating Missing -> Existing
+  1. Component : <path/to>/ex5/build/stream-Seed1-def10-5ns
+  2. Component : <path/to>/ex5/build/stream-Seed1-def10-6ns
+  3. Component : <path/to>/ex5/build/stream-Seed1-def20-5ns
+  4. Component : <path/to>/ex5/build/stream-Seed1-def20-6ns
+  5. Component : <path/to>/ex5/build/stream-Seed2-def10-5ns
+  6. Component : <path/to>/ex5/build/stream-Seed2-def10-6ns
+  7. Component : <path/to>/ex5/build/stream-Seed2-def20-5ns
+  8. Component : <path/to>/ex5/build/stream-Seed2-def20-6ns
+==============================================================================
+```
+
+The two techniques compose freely: dropping a *Seed3.hh* into the *seeds/* directory, or adding a third value to the `def_seed` list, each grows the set to 12 components. Each component's testbench reports both its included seed file (*incval*) and its `#define` value (*defval*).
+
 
 # Final Word
 **hlsBs** will happily accept multiple builds, fpgas, includes and defines combined in any mix. This can produce 10s if not many 10s of components. The limitation is likely on the user to not be overwhelmed.
