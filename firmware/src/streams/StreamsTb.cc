@@ -43,12 +43,10 @@
 // If defined, include the file defining the constants seed value
 // ----------------------------------------------------------------------
 #ifdef   STREAM_SEED
-// STREAM_SEED is passed as a bare path (e.g. -DSTREAM_SEED=seeds/Seed1.hh) so
-// it survives both csim (shell) and cosim (no shell) compilation identically.
-// Stringize it here to form a valid "filename" token for #include.
-#define  HLSBS_STR(x)  #x
-#define  HLSBS_XSTR(x) HLSBS_STR(x)
-#include HLSBS_XSTR(STREAM_SEED)
+// STREAM_SEED expands to a quoted path (e.g. "seeds/Seed1.hh") supplied by
+// hlsBs through a generated -include header, so a plain #include works in both
+// csim and cosim -- no stringizing needed.
+#include STREAM_SEED
 #else
 static const char *source = "Internal";
 constexpr int inc_seed = 0;
