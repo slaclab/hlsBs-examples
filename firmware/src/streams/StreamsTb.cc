@@ -31,7 +31,6 @@
  * 2026.06.30 jjr Target of hlsBs demonstation/tutorial
 \* ---------------------------------------------------------------------- */
 
-
 #include "streams/Streams.hh"
 #include "ap_axi_sdata.h"
 #include "hls_stream.h"
@@ -42,8 +41,8 @@
 // ----------------------------------------------------------------------
 // If defined, include the file defining the constants seed value
 // ----------------------------------------------------------------------
-#ifdef   STREAM_SEED
-#include STREAM_SEED
+#ifdef               STREAM_SEED
+#include IMPORT_FILE(STREAM_SEED)
 #else
 static const char *source = "Internal";
 constexpr int inc_seed = 0;

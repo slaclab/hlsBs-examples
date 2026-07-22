@@ -1,13 +1,12 @@
 import os
 
-
 def get_project_root (project) :
     # -------------------------------------------------------------
     # This is the default.  It can be used  when the project file
     # is in a directory immediately below the project root. It is
     # shown here just to illustrate it.
     #
-    # If the default is acceptable, thie methond can be omitted
+    # If the default is acceptable, this method can be omitted
     # or return None.  Returning None is preferred since it serves
     # a visual reminder that it can be set to anything.
     #
@@ -16,12 +15,12 @@ def get_project_root (project) :
     # only requirement is that it is in a subdirectory of the
     # project root.
     # -------------------------------------------------------------
-    return None # os.path.split (os.path.split (__file__)[0])[0]
+    return os.path.split (os.path.split (__file__)[0])[0]
 # ------------------------------------------------------------------------------
 
 
 # ------------------------------------------------------------------------------
-def get_products_root (project) :
+def  get_products_root (project) :
     # ------------------------------------------------------------
     # This is the default, but illustrates the recommended way is
     # locate it relative to the project root.
@@ -31,13 +30,23 @@ def get_products_root (project) :
 
 
 # ------------------------------------------------------------------------------
+def get_build_root (project) :
+    # ------------------------------------------------------------
+    # This is the default, but illustrates the recommended way is
+    # locate it relative to the products_root
+    # ------------------------------------------------------------
+    return os.path.join (project.products_root, 'build')
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
 def get_workspace (project) :
     # ------------------------------------------------------------
     # This is the default, but illustrates the recommended way is
-    # locate it relative to the project's products root.
+    # locate it relative to the build root.
     # ------------------------------------------------------------
-    return os.path.join (project.products_root, 'ws', '{vitis_version}')
+    return os.path.join (project.build_root, 'ws', '{vitis_version}')
 # ------------------------------------------------------------------------------
+
 
 
 # ------------------------------------------------------------------------------
@@ -45,22 +54,28 @@ def get_products (project) :
 
     Product       = project.Product
 
-    testbench    = os.path.join (project.root, '../src/streams/StreamsTb.cc')
-    syn          = os.path.join (project.root, '../src/streams/StreamsHls.cc')
-    includes     = ( {'paths' : os.path.join (project.root, '../', 'include'),
-                      'type'  : 'rel_path'} )
+    breakpoint ()
+    code_root     = os.path.join (project.root, '../')
+    includes      = Product.IncludePaths (code_root, 'include')
 
-    # ----------------------------------------------------
-    # Note: Here the name of the build is packaged with it
-    # ----------------------------------------------------
-    build       = ( 'stream',
-                    { 'top'       : 'doit',
-                      'tb'        : [ { 'files'    : testbench,
-                                        'includes' :  includes} ],
-                      'syn'       : [ { 'files'    :       syn,
-                                        'includes' :  includes} ],
-                      'csim_argv' : None,
-                      'cosim_argv': None} )
+    tb_srcs       = Product.Sources (root     = code_root,
+                                     files    = 'src/streams/StreamsTb.cc',
+                                     includes = includes,
+                                     defines  = None)
+
+    syn_srcs      = Product.Sources (root     = code_root,
+                                     files    = 'src/streams/StreamsHls.cc',
+                                     includes = includes,
+                                     defines  = None)
+
+    # --------------------------------------------------------------------------
+    # Defines how to build the HLS test bench, synthesis and cosim.
+    # --------------------------------------------------------------------------
+    build         = Product.Build  (top         = 'doit',
+                                    tb          = tb_srcs,
+                                    syn         = syn_srcs,
+                                    csim_argv   = "",
+                                    cosim_argv  = "")
 
     # ------------------------------------
     # The following symbolics are exported to be used in
@@ -70,8 +85,8 @@ def get_products (project) :
     fpgas        = [ Product.Fpga ('xcku115-flvb2104-2-i', '6',  None, '6ns'),
                      Product.Fpga ('xcku115-flvb2104-2-i', '5',  None, '5ns')]
 
-    components   = (Product.Builds ('build',  build),
-                    Product.Fpgas  ('fpga',   fpgas))
+    contributors = (Product.CtbBuilds ('build',  ['streams', build]),
+                    Product.CtbFpgas  ('fpga',               fpgas))
 
 
     # --------------------------------------------------
@@ -87,12 +102,11 @@ def get_products (project) :
     # -----------------------------------------------
     # Name the component after the configuration file
     # -----------------------------------------------
-    cmp_template = '{cfg_name}'
+    cmp_template  = '{cfg_name}'
 
-
-    targets      = [ { 'Components'        : components,
-                       'ConfigurationName' : cfg_template,
-                       'ComponentName'     : cmp_template } ]
+    components    = Product.Components (contributors = contributors,
+                                        cfg_template = cfg_template,
+                                        cmp_template = cmp_template)
 
     package_ip   = Product.Package.Ip (name    = '{cfg_name}',
                                        vendor  = 'SLAC',
@@ -104,14 +118,11 @@ def get_products (project) :
 
     vivado         = Product.Vivado  (flow ='syn',     syn_dcp = '1')
 
-
-    return Product (project = project,
-                    targets = targets,
-                    package = Product.Package (ip     = package_ip,
-                                               output = package_output),
-                    vivado  = vivado)
-
-
+    return Product (project    = project,
+                    components = components,
+                    package    = Product.Package (ip     = package_ip,
+                                                  output = package_output),
+                    vivado     = vivado)
 # ------------------------------------------------------------------------------
 
 

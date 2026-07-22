@@ -24,43 +24,48 @@ def get_workspace (project) :
 # ------------------------------------------------------------------------------
 def get_products (project) :
 
-    Product       = project.Product
+    Product      = project.Product
+    code_root    = os.path.join (project.root, '../')
 
-    include_path  = os.path.join (project.root, '../', 'include')
+    # -----------------------------------------------------------------
+    # These values are included via a #define specified at compile-time
+    # -----------------------------------------------------------------
+    defines  = Product.DefineValue   ('DEF_SEED', '{def_seed}')
 
-    testbench    = os.path.join (project.root, '../src/streams/StreamsTb.cc')
-    syn          = os.path.join (project.root, '../src/streams/StreamsHls.cc')
-    includes     = [ {'paths' : include_path,
-                      'type'  : 'rel_path'} ]
+    includes = Product.IncludePaths  (root       = code_root,
+                                      paths      = 'include')
 
+    tb_srcs  = Product.Sources       (root       = code_root,
+                                      files      = 'src/streams/StreamsTb.cc',
+                                      includes   = includes,
+                                      defines    = defines)
 
-    # --------------------------------------------
-    # These are included via a special #define
-    # --------------------------------------------
-    defines      = [ {'name'     :  'DEF_SEED',   # Name of the #define
-                      'type'     : 'string',
-                      'value'   : '{def_seed}'}] # The value of DEF_SEED,
+    syn_srcs = Product.Sources      (root       = code_root,
+                                     files      = 'src/streams/StreamsHls.cc',
+                                     includes   = includes,
+                                     defines    = None)
 
-    build        = { 'top'       : 'doit',
-                     'tb'        : [ { 'files'    : testbench,
-                                       'includes' :  includes,
-                                       'defines'  :   defines} ],
-                     'syn'       : [ { 'files'    :       syn,
-                                       'includes' :  includes} ],
-                    'csim_argv'  : '',
-                    'cosim_argv' : ''}
+    build    = Product.Build        (top        = 'doit',
+                                     tb         = tb_srcs,
+                                     syn        = syn_srcs,
+                                     csim_argv  = "",
+                                     cosim_argv = "")
 
     # ------------------------------------
     # The following symbolics are exported to be used in
     # configuration and component name generation
     #     fpga_part fpga_clock and fpga_id
     # ------------------------------------
-    fpgas        = [ Product.Fpga ('xcku115-flvb2104-2-i', '6',  None, '6ns'),
-                     Product.Fpga ('xcku115-flvb2104-2-i', '5',  None, '5ns')]
+    fpgas    = [ Product.Fpga ('xcku115-flvb2104-2-i', '6',  None, '6ns'),
+                 Product.Fpga ('xcku115-flvb2104-2-i', '5',  None, '5ns') ]
 
     # --------------------------------------------------------------------------
-    # The component is constructed for the build, the seed files, and FPGAs
-    # The 'build', 'start_seed',  and 'fpga' act as prefixes for the attributes.
+    # These are the contributes defining the set of components
+    #   The Builds and Fpgas are mandatory
+    #   The Values contributor makes #define macros available.
+    #       This has the advantage of providing these without editting the code.
+    #
+    # The 'build', 'def_seed',  and 'fpga' act as prefixes for the attributes.
     #
     # Have already encountered the FPGAs attributes
     #     fpga                - The fully Fpga class
@@ -70,11 +75,11 @@ def get_products (project) :
     #     fpga_id             - User assigned identifier
     #
     # For the Values these attributes are
-    #     start_seed
+    #     def_seed
     # -------------------------------------------------------------------------
-    components   = (Product.Builds ('build', [['stream', build]]),
-                    Product.Values ('def_seed',          (10,20)),
-                    Product.Fpgas  ('fpga',                fpgas))
+    contributors = (Product.CtbBuilds ('build', [['stream', build]]),
+                    Product.CtbFpgas  ('fpga',                fpgas),
+                    Product.CtbValues ('def_seed',          (10,20)))
 
     # -----------------------------------------------------------------------
     # Construct the configuration file name template to create a unique name.
@@ -95,29 +100,27 @@ def get_products (project) :
     # -----------------------------------------------
     # Name the component after the configuration file
     # -----------------------------------------------
-    cmp_template = '{cfg_name}'
+    cmp_template   = '{cfg_name}'
 
+    components     = Product.Components (contributors = contributors,
+                                         cfg_template = cfg_template,
+                                         cmp_template = cmp_template)
 
-    targets      = [ { 'Components'        :   components,
-                       'ConfigurationName' : cfg_template,
-                       'ComponentName'     : cmp_template } ]
-
-    package_ip   = Product.Package.Ip (name    = '{cfg_name}',
-                                       vendor  = 'SLAC',
-                                       version = '1.0.0',
-                                       library = 'hls')
+    package_ip     = Product.Package.Ip (name    = '{cfg_name}',
+                                         vendor  = 'SLAC',
+                                         version = '1.0.0',
+                                         library = 'hls')
 
     package_output = Product.Package.Output (format    = 'ip_catalog',
                                              syn       = 'false')
 
     vivado         = Product.Vivado  (flow ='syn',     syn_dcp = '1')
 
-
-    return Product (project = project,
-                    targets = targets,
-                    package = Product.Package (ip     = package_ip,
-                                               output = package_output),
-                    vivado  = vivado)
+    return Product (project    = project,
+                    components = components,
+                    package    = Product.Package (ip     = package_ip,
+                                                  output = package_output),
+                    vivado     = vivado)
 # ------------------------------------------------------------------------------
 
 

@@ -26,12 +26,10 @@ def get_products (project) :
 
     Product       = project.Product
 
-    include_path  = os.path.join (project.root, '../', 'include')
-
-    testbench    = os.path.join (project.root, '../src/streams/StreamsTb.cc')
-    syn          = os.path.join (project.root, '../src/streams/StreamsHls.cc')
-    includes     = [ {'paths' : include_path,
-                      'type'  : 'rel_path'} ]
+    code_root     = os.path.join (project.root, '../')
+    include_path  = os.path.join (code_root,   'include')
+    includes      = Product.IncludePaths (root  = None,
+                                          paths = include_path)
 
     # --------------------------------------------
     # Define the wildcard to select the Seed files
@@ -41,19 +39,25 @@ def get_products (project) :
     # --------------------------------------------
     # These are included via a special #define
     # --------------------------------------------
-    defines      = [ {'name'     : 'STREAM_SEED',   # #include STREAM_SEED
-                      'value'    : '{seed_path}',   # The value of STREAM_SEED
-                      'type'     :  'rel_path',     # Define as a relative path
-                      'rel_path' : include_path } ] # Relative to this path
+    defines       = Product.IncludeFiles ('STREAM_SEED',
+                                         '{seed_path}',
+                                         include_path)
 
-    build        = { 'top'       : 'doit',
-                     'tb'        : [ { 'files'    : testbench,
-                                       'includes' :  includes,
-                                       'defines'  :   defines} ],
-                     'syn'       : [ { 'files'    :       syn,
-                                       'includes' :  includes} ],
-                    'csim_argv'  : '',
-                    'cosim_argv' : ''}
+    tb_srcs       = Product.Sources (root     = code_root,
+                                     files    = 'src/streams/StreamsTb.cc',
+                                     includes = includes,
+                                     defines  = defines)
+
+    syn_srcs      = Product.Sources (root     = code_root,
+                                     files    = 'src/streams/StreamsHls.cc',
+                                     includes = includes,
+                                     defines  = defines)
+
+    build        = Product.Build   (top        =    'doit',
+                                    tb         =   tb_srcs,
+                                    syn        =  syn_srcs,
+                                    csim_argv  =        "",
+                                    cosim_argv =        "")
 
     # ------------------------------------
     # The following symbolics are exported to be used in
@@ -84,9 +88,9 @@ def get_products (project) :
     # Note that the Product.Builds,Files,Fpgas can be specified multiple times
     # as long as a unique prefix is given for each instance.
     # -------------------------------------------------------------------------
-    components   = (Product.Builds ('build', [['stream', build]]),
-                    Product.Files  ('seed',     stream_seeds),
-                    Product.Fpgas  ('fpga',           fpgas))
+    contributors = (Product.CtbBuilds ('build', [['stream', build]]),
+                    Product.CtbFiles  ('seed',     stream_seeds),
+                    Product.CtbFpgas  ('fpga',           fpgas))
 
     # -----------------------------------------------------------------------
     # Construct the configuration file name template to create a unique name.
@@ -116,10 +120,9 @@ def get_products (project) :
     cmp_template = '{cfg_name}'
 
 
-    targets      = [ { 'Components'        :   components,
-                       'SourceFiles'       :       'seed',
-                       'ConfigurationName' : cfg_template,
-                       'ComponentName'     : cmp_template } ]
+    components   = Product.Components (contributors = contributors,
+                                       cfg_template = cfg_template,
+                                       cmp_template = cmp_template)
 
     package_ip   = Product.Package.Ip (name    = '{cfg_name}',
                                        vendor  = 'SLAC',
@@ -132,11 +135,11 @@ def get_products (project) :
     vivado         = Product.Vivado  (flow ='syn',     syn_dcp = '1')
 
 
-    return Product (project = project,
-                    targets = targets,
-                    package = Product.Package (ip     = package_ip,
-                                               output = package_output),
-                    vivado  = vivado)
+    return Product (project    = project,
+                    components = components,
+                    package    = Product.Package (ip     = package_ip,
+                                                  output = package_output),
+                    vivado     = vivado)
 # ------------------------------------------------------------------------------
 
 
