@@ -1,3 +1,19 @@
+#-----------------------------------------------------------------------------
+# Title      : hlsBs project descriptor -- ex4 (#define values)
+#-----------------------------------------------------------------------------
+# Description:
+# ex4: sweep a #define value (Product.Values, 2 values) x 2 FPGAs,
+#      producing four components.
+#-----------------------------------------------------------------------------
+# This file is part of the 'hlsBs-examples'. It is subject to
+# the license terms in the LICENSE.txt file found in the top-level directory
+# of this distribution and at:
+#    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
+# No part of the 'hlsBs-examples', including this file, may be
+# copied, modified, propagated, or distributed except according to the terms
+# contained in the LICENSE.txt file.
+#-----------------------------------------------------------------------------
+
 import os
 
 # ------------------------------------------------------------------------------
@@ -30,7 +46,7 @@ def get_products (project) :
     # -----------------------------------------------------------------
     # These values are included via a #define specified at compile-time
     # -----------------------------------------------------------------
-    defines  = Product.DefineValue   ('DEF_SEED', '{def_seed}')
+    defines  = Product.DefineValue   ('DEF_SEED', '{def.value}')
 
     includes = Product.IncludePaths  (root       = code_root,
                                       paths      = 'include')
@@ -65,7 +81,7 @@ def get_products (project) :
     #   The Values contributor makes #define macros available.
     #       This has the advantage of providing these without editting the code.
     #
-    # The 'build', 'def_seed',  and 'fpga' act as prefixes for the attributes.
+    # The 'build', 'def,  and 'fpga' act as prefixes for the attributes.
     #
     # Have already encountered the FPGAs attributes
     #     fpga                - The fully Fpga class
@@ -77,9 +93,9 @@ def get_products (project) :
     # For the Values these attributes are
     #     def_seed
     # -------------------------------------------------------------------------
-    contributors = (Product.CtbBuilds ('build', [['stream', build]]),
-                    Product.CtbFpgas  ('fpga',                fpgas),
-                    Product.CtbValues ('def_seed',          (10,20)))
+    contributors = Product.Contributors (Product.CtbBuilds ('build', [['stream', build]]),
+                                         Product.CtbFpgas  ('fpga',                fpgas),
+                                         Product.CtbValues ('def',               (10,20)))
 
     # -----------------------------------------------------------------------
     # Construct the configuration file name template to create a unique name.
@@ -92,21 +108,18 @@ def get_products (project) :
     #
     # Here is example where adding some text helps add meaning
     # -----------------------------------------------------------------------
-    cfg_template = (os.path.join (project.products_root,
-                                  'cfg',
-                                  '{vitis_version}',
-                                  '{build_id}-seed{def_seed}-{fpga_id}.cfg'))
+    cfg_template = Product.CfgTemplate ('cfg', '{build.id}-def{def.value}-{fpga.id}')
 
     # -----------------------------------------------
     # Name the component after the configuration file
     # -----------------------------------------------
-    cmp_template   = '{cfg_name}'
+    cmp_template = Product.CmpTemplate ('cmp', '{cfg.name}')
 
     components     = Product.Components (contributors = contributors,
                                          cfg_template = cfg_template,
                                          cmp_template = cmp_template)
 
-    package_ip     = Product.Package.Ip (name    = '{cfg_name}',
+    package_ip     = Product.Package.Ip (name    = '{cfg.name}',
                                          vendor  = 'SLAC',
                                          version = '1.0.0',
                                          library = 'hls')

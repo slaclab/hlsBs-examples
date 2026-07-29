@@ -1,3 +1,18 @@
+#-----------------------------------------------------------------------------
+# Title      : hlsBs project descriptor -- ex0 (the basics)
+#-----------------------------------------------------------------------------
+# Description:
+# ex0: the basics -- one build on one FPGA, producing a single component.
+#-----------------------------------------------------------------------------
+# This file is part of the 'hlsBs-examples'. It is subject to
+# the license terms in the LICENSE.txt file found in the top-level directory
+# of this distribution and at:
+#    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
+# No part of the 'hlsBs-examples', including this file, may be
+# copied, modified, propagated, or distributed except according to the terms
+# contained in the LICENSE.txt file.
+#-----------------------------------------------------------------------------
+
 import os
 
 # ----------------------------------------------------------------------------
@@ -14,7 +29,7 @@ import os
 # The default is
 #    <project_root>/products/build/ws/<vitis_version>
 #                                 cfg/<vitis_version>
-#                                  ip/<vitis_version>
+#                            ip/<vitis_version>
 #
 # The defaults are also accepted for the ip directory (.dcp & .zip files)
 # ----------------------------------------------------------------------------
@@ -54,39 +69,51 @@ def get_products (project) :
     fpga         =  Product.Fpga ('xcku115-flvb2104-2-i', '6',  None, 'f0')
 
     # -----------------------------------------------------
-    # The contributors are determine the set of commponents
-    # The Builds and Fpgas contributors are mandatory.
-    # As the plural form is meant to suggest, there can be
-    # more than one as in the Fpgas, but Builds can consist
-    # of multiple.
+    # The contributors determine the set of commponents.
+    # The Builds and Fpgas contributors are mandatory and
+    # are required to be in that logical order.
+    #
+    # As the plural form is meant to suggest, just as there
+    # can be more than one as in the Fpgas, there can be
+    # multiple builds presented as list or tuple.
     # -----------------------------------------------------
-    contributors = ( Product.CtbBuilds ('build', ['streams', build]),
-                     Product.CtbFpgas  ('fpga',               fpga) )
+    contributors = Product.Contributors(
+                           Product.CtbBuilds ('build', ['streams', build]),
+                           Product.CtbFpgas  ('fpga',                fpga))
 
-    # --------------------------------------------------
+    # ---------------------------------------------------
     # Configuration file name template
     # Generates the name of the configuration file.
+    #
     # Here:  <cfg_root>/{build_id}.cfg
-    # Using the default value of cfg_root this is
+    #
+    # The directory defaults to project.cfg_root
+    # The extension defaults to '.cfg'
+    #
+    # So the configuration file path is
     #        <root>/products/build/cfg/2024.2/streams.cfg
-    # --------------------------------------------------
-    cfg_template = os.path.join (project.cfg_root, '{build_id}.cfg')
+    # ---------------------------------------------------
+    cfg_template = Product.CfgTemplate (prefix   = 'cfg',
+                                        template = '{cmp.name}')
 
     # -----------------------------------------------
     # Name the component after the configuration file
+    # The directory is always project.workspace
     # -----------------------------------------------
-    cmp_template = '{cfg_name}'
+    cmp_template = Product.CmpTemplate (prefix   = 'cmp',
+                                        template = '{build.id}')
+
 
     # -------------------------------------------------------------
     # The fully specified components are the component contributors
     # bound to their configuration and component names
     #
-    # As the plural 'targets' suggestions this may be a
+    # As the plural 'components' suggestions this may be a
     # single, list or tuple.
     # --------------------------------------------------
-    components    = Product.Components (contributors = contributors,
-                                        cfg_template = cfg_template,
-                                        cmp_template = cmp_template)
+    components     = Product.Components (contributors = contributors,
+                                         cfg_template = cfg_template,
+                                         cmp_template = cmp_template)
 
     # --------------------------------------------------
     # Fill out the package IP description
@@ -95,10 +122,10 @@ def get_products (project) :
     #       a command line parameter (ip_version?) could
     #       be useful.
     # --------------------------------------------------
-    package_ip   = Product.Package.Ip (name    = '{cfg_name}',
-                                       vendor  = 'SLAC',
-                                       version = '1.0.0',
-                                       library = 'hls')
+    package_ip     = Product.Package.Ip (name    = '{cfg.name}',
+                                         vendor  = 'SLAC',
+                                         version = '1.0.0',
+                                         library = 'hls')
 
     # -------------------------------------------------
     # Is there any reason these could not be defaulted?

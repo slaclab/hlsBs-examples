@@ -11,8 +11,8 @@
 #
 # Details:
 #  A shell function called exSelect is defined which is used to select
-#  the example project.  Currently there are 3 example projects,
-#      ex0,ex1,ex2
+#  the example project.  Currently there are 6 example projects,
+#      ex0,ex1,ex2,ex3,ex4,ex5
 #
 # Usage:
 # $ exSelect ex1  # Selects example project 'ex1'
@@ -61,6 +61,32 @@ function setup ()
     local script_dir=`dirname $script_fn`
     local prj_root=`dirname $script_dir`
 
+    # ------------------------------------------------------------------
+    # Site default: root of the Xilinx/Vitis installations.
+    #
+    # hlsVersion/hlsVer expand the literal ${version} token (deferred by
+    # the single quotes) and search <this>/Vitis for settings64.sh, e.g.
+    #   hlsVersion 2025.2 -> /sdf/group/faders/tools/xilinx/2025.2/Vitis
+    #
+    # The upstream hlsBs README recommends keeping site-specific absolute
+    # paths OUT of the repo (via a personal 'hlsLocate' alias). For an
+    # examples/tutorial repo, convenience wins: default it here so the
+    # tutorial runs out-of-the-box at SLAC, but ONLY when the user has
+    # not already defined it (an external hlsLocate alias still wins).
+    # ------------------------------------------------------------------
+    if [[ -z "${HLSBS_XILINX_SETUP}" ]]; then
+        local slac_xilinx='/sdf/group/faders/tools/xilinx'
+        if [[ -d "${slac_xilinx}" ]]; then
+            export HLSBS_XILINX_SETUP=${slac_xilinx}'/${version}'
+        else
+            echo -e  "\nERROR: The directory to the Xilinx tools was not found"
+            echo -e    " path: ${slac_xilinx}\n"
+            echo -e    "     * This is a SLAC path"
+            echo -e    "     * See the hlsBs documentation to see how to define this for your site\n"
+            return -1
+       fi
+    fi
+
     # ------------------------------
     # Source the ruckus setup script
     # ------------------------------
@@ -80,6 +106,7 @@ function setup ()
     export ex2=${prj_root}/ex2/project/Streams.py
     export ex3=${prj_root}/ex3/project/Streams.py
     export ex4=${prj_root}/ex4/project/Streams.py
+    export ex5=${prj_root}/ex5/project/Streams.py
 
     # ---------------------------------------
     # Change to hlsBs-examples root directory
@@ -105,10 +132,10 @@ unset -f setup
 #  Shell function to select the example project
 #
 # Parameters
-#  The example to select, i.e. one of ex0, ex1, ex2
+#  The example to select, i.e. one of ex0, ex1, ex2, ex3, ex4, ex5
 #
 # Usage:
-#  $ exSelect [ ex0 | ex1 | ex2 | ex3 ]
+#  $ exSelect [ ex0 | ex1 | ex2 | ex3 | ex4 | ex5 ]
 #
 # Example:
 #  $ exSelect ex1

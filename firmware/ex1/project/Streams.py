@@ -1,3 +1,18 @@
+#-----------------------------------------------------------------------------
+# Title      : hlsBs project descriptor -- ex0 (the basics)
+#-----------------------------------------------------------------------------
+# Description:
+# ex1: one build across two FPGAs (clocks), producing two components.
+#-----------------------------------------------------------------------------
+# This file is part of the 'hlsBs-examples'. It is subject to
+# the license terms in the LICENSE.txt file found in the top-level directory
+# of this distribution and at:
+#    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html.
+# No part of the 'hlsBs-examples', including this file, may be
+# copied, modified, propagated, or distributed except according to the terms
+# contained in the LICENSE.txt file.
+#-----------------------------------------------------------------------------
+
 import os
 
 def get_project_root (project) :
@@ -44,7 +59,7 @@ def get_workspace (project) :
     # This is the default, but illustrates the recommended way is
     # locate it relative to the build root.
     # ------------------------------------------------------------
-    return os.path.join (project.build_root, 'ws', '{vitis_version}')
+    return os.path.join (project.build_root, 'ws', '{vitis.version}')
 # ------------------------------------------------------------------------------
 
 
@@ -54,7 +69,6 @@ def get_products (project) :
 
     Product       = project.Product
 
-    breakpoint ()
     code_root     = os.path.join (project.root, '../')
     includes      = Product.IncludePaths (code_root, 'include')
 
@@ -89,26 +103,24 @@ def get_products (project) :
                     Product.CtbFpgas  ('fpga',               fpgas))
 
 
-    # --------------------------------------------------
+    # ------------------------------=--------------------
     # Configuration file name template
-    # Makes  products/cfg/{vitis_version}/{build_id}.cfg
-    #  e.g.  products/cfg/2024.2/streams.cfg
-    # --------------------------------------------------
-    cfg_template = (os.path.join (project.products_root,
-                                  'cfg',
-                                  '{vitis_version}',
-                                  '{build_id}-{fpga_id}.cfg'))
+    # Makes  project.cfg_root/{build.id}-{fpga.id}.cfg
+    #  e.g.  <root>/products/build/cfg/2024.2/streams.cfg
+    # ---------------------------------------------------
+    cfg_template = Product.CfgTemplate (prefix   = 'cfg',
+                                        template = '{build.id}-{fpga.id}.cfg')
 
     # -----------------------------------------------
     # Name the component after the configuration file
     # -----------------------------------------------
-    cmp_template  = '{cfg_name}'
+    cmp_template  = Product.CmpTemplate ('cmp', '{cfg.name}')
 
     components    = Product.Components (contributors = contributors,
                                         cfg_template = cfg_template,
                                         cmp_template = cmp_template)
 
-    package_ip   = Product.Package.Ip (name    = '{cfg_name}',
+    package_ip   = Product.Package.Ip (name    = '{cfg.name}',
                                        vendor  = 'SLAC',
                                        version = '1.0.0',
                                        library = 'hls')
@@ -131,30 +143,30 @@ def get_ip (project) :
     ip = project.Ip \
     (
         dir      =  os.path.join (project.products_root,
-                                  'ip', '{vitis_version}'),
-        zip_file = '{cmp_name}',
+                                  'ip', '{vitis.version}'),
+        zip_file = '{cmp.name}',
         family   = ('artix7,kintex7,virtex7,zynq,kintexu,virtexu,kintexuplus,'
                     'virtexuplus,virtexuplusHBM,zynqplus,zynquplusRFSOC,veral'),
 
         # The dcp rename pieces are
         #    dcp_rename : What to rename it to
-        #                 By default this follows the cmp_name
+        #                 By default this follows the cmp.name
         #
         #    dcp_file   : The new file name
         #                 Befault =  '{dcp_rename}'
-        #                 '{cmp_name} is also permitted
+        #                 '{cmp.name} is also permitted
         #
         #    dgn_dir    : The directory for the journal and log files
         #                 Default = '{dcp_rename}'
-        #                 '{cmp_name} is also permitted
+        #                 '{cmp.name} is also permitted
         #
         #    jou_file   : The journal file name
         #                 Default = '{dcp_name}' - i.e. the dcp file name
-        #                 '{dcp_rename}' or '{cmp_name}' are also permitted
+        #                 '{dcp_rename}' or '{cmp.name}' are also permitted
         #
         #    log_file   : The log file name
         #                 Default = '{dcp_name}' - i.e. the dcp_file name
-        #                 '{dcp_rename}' or '{cmp_name}' are also permitted
+        #                 '{dcp_rename}' or '{cmp.name}' are also permitted
         #
         # Using the defaults names everything after the component
         # -----------------------------------------------------------------
@@ -163,7 +175,7 @@ def get_ip (project) :
         # The below are all the defaults and can be omitted or set to None
         # The are just provided here for illustration
         # ----------------------------------------------------------------
-        #dcp_rename = '{cmp_name}',
+        #dcp_rename = '{cmp.name}',
         #dcp_file   = '{dcp_rename}',
 
         #dgn_dir    = 'dgn/',
