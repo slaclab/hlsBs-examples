@@ -99,8 +99,8 @@ def get_products (project) :
     fpgas        = [ Product.Fpga ('xcku115-flvb2104-2-i', '6',  None, '6ns'),
                      Product.Fpga ('xcku115-flvb2104-2-i', '5',  None, '5ns')]
 
-    contributors = (Product.CtbBuilds ('build',  ['streams', build]),
-                    Product.CtbFpgas  ('fpga',               fpgas))
+    contributors = Product.Contributors (Product.CtbBuilds ('build',  ['streams', build]),
+                                         Product.CtbFpgas  ('fpga',               fpgas))
 
 
     # ------------------------------=--------------------
@@ -144,7 +144,13 @@ def get_ip (project) :
     (
         dir      =  os.path.join (project.products_root,
                                   'ip', '{vitis.version}'),
+
+        # ---------------------------------------------------
+        # While None or an explicit name can be used
+        # {cmp.name} is the only symbolic that is recognized
+        # --------------------------------------------------
         zip_file = '{cmp.name}',
+
         family   = ('artix7,kintex7,virtex7,zynq,kintexu,virtexu,kintexuplus,'
                     'virtexuplus,virtexuplusHBM,zynqplus,zynquplusRFSOC,veral'),
 
@@ -157,16 +163,16 @@ def get_ip (project) :
         #                 '{cmp.name} is also permitted
         #
         #    dgn_dir    : The directory for the journal and log files
-        #                 Default = '{dcp_rename}'
+        #                 Default = '{dcp.rename}'
         #                 '{cmp.name} is also permitted
         #
         #    jou_file   : The journal file name
-        #                 Default = '{dcp_name}' - i.e. the dcp file name
-        #                 '{dcp_rename}' or '{cmp.name}' are also permitted
+        #                 Default = '{dcp.name}' - i.e. the dcp file name
+        #                 '{dcp.rename}' or '{cmp.name}' are also permitted
         #
         #    log_file   : The log file name
-        #                 Default = '{dcp_name}' - i.e. the dcp_file name
-        #                 '{dcp_rename}' or '{cmp.name}' are also permitted
+        #                 Default = '{dcp.name}' - i.e. the dcp_file name
+        #                 '{dcp.rename}' or '{cmp.name}' are also permitted
         #
         # Using the defaults names everything after the component
         # -----------------------------------------------------------------
@@ -175,12 +181,12 @@ def get_ip (project) :
         # The below are all the defaults and can be omitted or set to None
         # The are just provided here for illustration
         # ----------------------------------------------------------------
-        #dcp_rename = '{cmp.name}',
-        #dcp_file   = '{dcp_rename}',
+        dcp_rename = '{cmp.name}',
+        dcp_file   = '{cmp.name}',
 
-        #dgn_dir    = 'dgn/',
-        #jou_file   = '{dcp_name}',
-        #log_file   = '{dcp_name}'
+        dgn_dir    =  os.path.join (project.build_root, 'ip', 'dgn', '{vitis.version}'),
+        jou_file   = '{dcp.name}',
+        log_file   = '{dcp.name}'
     )
 
     return ip
