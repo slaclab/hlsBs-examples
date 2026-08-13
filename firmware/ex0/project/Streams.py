@@ -101,7 +101,7 @@ def get_products (project) :
     # The directory is always project.workspace
     # -----------------------------------------------
     cmp_template = Product.CmpTemplate (prefix   = 'cmp',
-                                        template = '{build.id}')
+                                        template = '{build.id}-{git.hash_short}')
 
 
     # -------------------------------------------------------------
