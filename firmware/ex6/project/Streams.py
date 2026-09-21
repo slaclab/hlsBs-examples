@@ -1,8 +1,8 @@
 #-----------------------------------------------------------------------------
-# Title      : hlsBs project descriptor -- ex0 (the basics)
+# Title      : hlsBs project descriptor -- ex6
 #-----------------------------------------------------------------------------
 # Description:
-# ex0: the basics -- one build on one FPGA, producing a single component.
+# ex6: add an environment variable whose translation is deferred till run-time
 #-----------------------------------------------------------------------------
 # This file is part of the 'hlsBs-examples'. It is subject to
 # the license terms in the LICENSE.txt file found in the top-level directory
@@ -14,25 +14,6 @@
 #-----------------------------------------------------------------------------
 
 import os
-
-# ----------------------------------------------------------------------------
-# For this simple example, the default output directories have been accepted.
-# See ex1 for how to customize the placement of the following directories:
-#    what                Python method                   Environment Variable
-#    -------------    ---------------------------------  --------------------
-#    project_root     def get_project_root  (project)    <none>
-#    products_root    def get_products_root (project)    HLSBS_PRODUCTS
-#    build_root       def get_build_root    (project)    HLSBS_BUILD
-#    workspace        def get_workspace     (project)    HLSBS_WORKSPACE
-#    cfg_root         def get_cfg_root      (project)    HLSBS_CFG
-#
-# The default is
-#    <project_root>/products/build/ws/<vitis_version>
-#                                 cfg/<vitis_version>
-#                            ip/<vitis_version>
-#
-# The defaults are also accepted for the ip directory (.dcp & .zip files)
-# ----------------------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------------
@@ -54,7 +35,14 @@ def get_products (project) :
                                      includes = includes,
                                      defines  = None)
 
-    csim_argv    = '--ntests=5 --source=' + os.path.basename(__file__)
+
+    # -----------------------------------------------------------------
+    # Converts the string of any environment variable whose translation
+    # is deferred until at runtime.
+    # -----------------------------------------------------------------
+    csim_argv    = ( "--ntests=" + Product.EnvString.preserve ('NTESTS')
+                 +  " --source=ProjectFile")
+    cosim_argv   = csim_argv
 
     # --------------------------------------------------------------------------
     # Defines how to build the HLS test bench, synthesis and cosim.
@@ -64,7 +52,7 @@ def get_products (project) :
                                     tb          = tb_srcs,
                                     syn         = syn_srcs,
                                     csim_argv   = csim_argv,
-                                    cosim_argv  = "")
+                                    cosim_argv  = cosim_argv)
 
     # ------------------------------------------------------------------------
     # Define the Fpga or Fpgas. This may a single, list or tuple

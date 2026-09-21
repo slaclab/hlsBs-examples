@@ -85,7 +85,8 @@ def get_products (project) :
     # --------------------------------------------------------------------------
     # Defines how to build the HLS test bench, synthesis and cosim.
     # --------------------------------------------------------------------------
-    build         = Product.Build  (top         = 'doit',
+    build         = Product.Build  (id          = 'streams',
+                                    top         = 'doit',
                                     tb          = tb_srcs,
                                     syn         = syn_srcs,
                                     csim_argv   = "",
@@ -96,11 +97,11 @@ def get_products (project) :
     # configuration and component name generation
     #     fpga_part fpga_clock and fpga_id
     # ------------------------------------
-    fpgas        = [ Product.Fpga ('xcku115-flvb2104-2-i', '6',  None, '6ns'),
-                     Product.Fpga ('xcku115-flvb2104-2-i', '5',  None, '5ns')]
+    fpgas        = [ Product.Fpga ('6ns', 'xcku115-flvb2104-2-i', '6',  None),
+                     Product.Fpga ('5ns', 'xcku115-flvb2104-2-i', '5',  None)]
 
-    contributors = Product.Contributors (Product.CtbBuilds ('build',  ['streams', build]),
-                                         Product.CtbFpgas  ('fpga',               fpgas))
+    contributors = Product.Contributors (Product.CtbBuilds ('build',  build),
+                                         Product.CtbFpgas  ('fpga',   fpgas))
 
 
     # ------------------------------=--------------------
@@ -152,7 +153,7 @@ def get_ip (project) :
         zip_file = '{cmp.name}',
 
         family   = ('artix7,kintex7,virtex7,zynq,kintexu,virtexu,kintexuplus,'
-                    'virtexuplus,virtexuplusHBM,zynqplus,zynquplusRFSOC,veral'),
+                    'virtexuplus,virtexuplusHBM,zynqplus,zynquplusRFSOC,versal'),
 
         # The dcp rename pieces are
         #    dcp_rename : What to rename it to

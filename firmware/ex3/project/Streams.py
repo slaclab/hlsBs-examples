@@ -67,21 +67,22 @@ def get_products (project) :
     syn_srcs      = Product.Sources (root     = code_root,
                                      files    = 'src/streams/StreamsHls.cc',
                                      includes = includes,
-                                     defines  = defines)
+                                     defines  = None)
 
-    build        = Product.Build   (top        =    'doit',
-                                    tb         =   tb_srcs,
-                                    syn        =  syn_srcs,
-                                    csim_argv  =        "",
-                                    cosim_argv =        "")
+    build        = Product.Build    (id         =  'stream',
+                                     top        =    'doit',
+                                     tb         =   tb_srcs,
+                                     syn        =  syn_srcs,
+                                     csim_argv  =        "",
+                                     cosim_argv =        "")
 
     # ------------------------------------
     # The following symbolics are exported to be used in
     # configuration and component name generation
     #     fpga.part fpga.clock and fpga.id
     # ------------------------------------
-    fpgas        = [ Product.Fpga ('xcku115-flvb2104-2-i', '6',  None, '6ns'),
-                     Product.Fpga ('xcku115-flvb2104-2-i', '5',  None, '5ns')]
+    fpgas        = [ Product.Fpga ('6ns', 'xcku115-flvb2104-2-i', '6',  None),
+                     Product.Fpga ('5ns', 'xcku115-flvb2104-2-i', '5',  None)]
 
     # --------------------------------------------------------------------------
     # The component is constructed for the build, the seed files, and FPGAs
@@ -99,15 +100,16 @@ def get_products (project) :
     #     seed.dir           - The directory of the include file
     #     seed.name          - The file name of include file
     #     seed.ext           - The file extension of the inclde file
-    # The 'defines' uses {seed.path} as the logical symbol for the include file
+    # The 'defines' uses {seed.path} as the product parameter for the include file
+    # The 'cfg_template' uses {seed.name}
     #
-    # Note that the Product.Builds,Files,Fpgas can be specified multiple times
-    # as long as a unique prefix is given for each instance.
+    # Note that the Product.CtbBuilds,CtbFiles,CtbFpgas can be specified multiple
+    # times, but all prefixes must be unique.
     # -------------------------------------------------------------------------
     contributors = Product.Contributors (
-                           Product.CtbBuilds ('build', [['stream', build]]),
-                           Product.CtbFpgas  ('fpga',                fpgas),
-                           Product.CtbFiles  ('seed',         stream_seeds))
+                           Product.CtbBuilds ('build',  build),
+                           Product.CtbFpgas  ('fpga',   fpgas),
+                           Product.CtbFiles  ('seed',   stream_seeds))
 
 
     # -----------------------------------------------------------------------
@@ -125,7 +127,7 @@ def get_products (project) :
     # NOTE: Text can also be included to help with clarity.
     #       B{build.id}-I{seed.name}-F{fpga.id}
     #
-    #  e.g.  products/cfg/2024.2/streamA--Seed1-6ns.cfg
+    #  e.g.  project.cfg_root/2024.2/BstreamA--ISeed1-F6ns.cfg
     # -----------------------------------------------------------------------
     cfg_template = Product.CfgTemplate ('cfg',
                                         '{build.id}-{seed.name}-{fpga.id}')
@@ -164,10 +166,10 @@ def get_ip (project) :
     ip = project.Ip \
     (
         dir      =  os.path.join (project.products_root,
-                                  'ip', '{vitis_version}'),
+                                  'ip', '{vitis.version}'),
         zip_file = '{cmp.name}',
         family   = ('artix7,kintex7,virtex7,zynq,kintexu,virtexu,kintexuplus,'
-                    'virtexuplus,virtexuplusHBM,zynqplus,zynquplusRFSOC,veral'),
+                    'virtexuplus,virtexuplusHBM,zynquplus,zynquplusRFSOC,versal'),
 
         # The dcp rename pieces are
         #    dcp_rename : What to rename it to

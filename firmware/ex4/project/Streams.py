@@ -33,7 +33,7 @@ def  get_products_root (project) :
 # ------------------------------------------------------------------------------
 def get_workspace (project) :
     # Accept the default which is effectively the commented out value
-    return None # os.path.join (project.products_root, 'ws', '{vitis_version}')
+    return None # os.path.join (project.products_root, 'ws', '{vitis.version}')
 # ------------------------------------------------------------------------------
 
 
@@ -61,7 +61,8 @@ def get_products (project) :
                                      includes   = includes,
                                      defines    = None)
 
-    build    = Product.Build        (top        = 'doit',
+    build    = Product.Build        (id         = 'stream',
+                                     top        = 'doit',
                                      tb         = tb_srcs,
                                      syn        = syn_srcs,
                                      csim_argv  = "",
@@ -72,9 +73,11 @@ def get_products (project) :
     # configuration and component name generation
     #     fpga_part fpga_clock and fpga_id
     # ------------------------------------
-    fpgas    = [ Product.Fpga ('xcku115-flvb2104-2-i', '6',  None, '6ns'),
-                 Product.Fpga ('xcku115-flvb2104-2-i', '5',  None, '5ns') ]
+    fpgas    = [ Product.Fpga  ('6ns', 'xcku115-flvb2104-2-i', '6',  None),
+                 Product.Fpga  ('5ns', 'xcku115-flvb2104-2-i', '5',  None) ]
 
+    values   = ( Product.Value (id = None,  value = 20),
+                 Product.Value (id = 'D30', value = 30) )
     # --------------------------------------------------------------------------
     # These are the contributes defining the set of components
     #   The Builds and Fpgas are mandatory
@@ -93,9 +96,10 @@ def get_products (project) :
     # For the Values these attributes are
     #     def_seed
     # -------------------------------------------------------------------------
-    contributors = Product.Contributors (Product.CtbBuilds ('build', [['stream', build]]),
-                                         Product.CtbFpgas  ('fpga',                fpgas),
-                                         Product.CtbValues ('def',               (10,20)))
+    contributors = Product.Contributors (
+                           Product.CtbBuilds ('build', build),
+                           Product.CtbFpgas  ('fpga',  fpgas),
+                           Product.CtbValues ('def',   values))
 
     # -----------------------------------------------------------------------
     # Construct the configuration file name template to create a unique name.
@@ -108,7 +112,7 @@ def get_products (project) :
     #
     # Here is example where adding some text helps add meaning
     # -----------------------------------------------------------------------
-    cfg_template = Product.CfgTemplate ('cfg', '{build.id}-def{def.value}-{fpga.id}')
+    cfg_template = Product.CfgTemplate ('cfg', '{build.id}-{def.id}-{fpga.id}')
 
     # -----------------------------------------------
     # Name the component after the configuration file
@@ -142,10 +146,10 @@ def get_ip (project) :
     ip = project.Ip \
     (
         dir      =  os.path.join (project.products_root,
-                                  'ip', '{vitis_version}'),
-        zip_file = '{cmp_name}',
+                                  'ip', '{vitis.version}'),
+        zip_file = '{cmp.name}',
         family   = ('artix7,kintex7,virtex7,zynq,kintexu,virtexu,kintexuplus,'
-                    'virtexuplus,virtexuplusHBM,zynqplus,zynquplusRFSOC,veral'),
+                    'virtexuplus,virtexuplusHBM,zynqplus,zynquplusRFSOC,versal'),
 
         # The dcp rename pieces are
         #    dcp_rename : What to rename it to

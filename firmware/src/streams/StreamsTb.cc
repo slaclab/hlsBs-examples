@@ -36,7 +36,10 @@
 #include "hls_stream.h"
 #include <iostream>
 
+#include "hlsHelpers/ExpandArgs.hh"
+#include "hlsHelpers/ExpandEnvs.hh"
 #include <getopt.h>
+#include <stdlib.h>
 
 // ----------------------------------------------------------------------
 // If defined, include the file defining the constants seed value
@@ -76,30 +79,34 @@ static void compose (SrcStream_t &src, int value, bool last);
 class Parameters
 {
 public:
-   Parameters (int argc, char *const argv[]);
+   Parameters (int argc, char *argv[]);
 
 public:
-   int m_ntests;
+   int         m_ntests;
+   const char *m_source;
 };
 /* ---------------------------------------------------------------------- */
 
 
 /* ---------------------------------------------------------------------- */
-int main (int argc, char *const argv[])
+int main (int argc, char *argv[])
 {
+
    SrcStream srcStream;
    DstStream dstStream;
    static auto constants = std::make_tuple (Constants0(inc_seed),
                                             Constants0(def_seed));
-   int           status = 0;
-   Parameters    prms (argc, argv);
-   auto ntests = prms.m_ntests;
+   int             status = 0;
+   hlsHelpers::ExpandArgs cl(argc, argv);
+   Parameters        prms (cl.m_argc, cl.m_argv);
+   int            ntests = prms.m_ntests;
 
    std::cout << '\n'
              << "Stream.source = " << source << '\n'
              << "      .incval = " << std::setw (3) << inc_seed << '\n'
              << "      .defval = " << std::setw (3) << def_seed << '\n'
-             << "       ntests = " << std::setw (3) << ntests   << '\n'
+             << "       ntests = " << std::setw (3) << ntests
+             << " (" << prms.m_source << ')' << '\n'
              << std::endl;
 
    // ------------------
@@ -137,17 +144,19 @@ int main (int argc, char *const argv[])
   \param[in] argv:  the command line arugments
                                                                           */
 /* ---------------------------------------------------------------------- */
-Parameters::Parameters (int argc, char *const argv[])
+Parameters::Parameters (int argc, char *argv[])
 {
    static struct option const Opts[] =
    {
       { "ntests", required_argument, 0, 'n'},
+      { "source", required_argument, 0, 's'},
       {       0,                  0, 0,  0 }
    };
 
 
    // Default to 5 tests
    m_ntests = 5;
+   m_source = "Default";
 
    // Extract the command line parameters
    while (1)
@@ -161,9 +170,30 @@ Parameters::Parameters (int argc, char *const argv[])
       {
       case 'n' :
       {
-         m_ntests = atoi (optarg);
+         if (optarg[0] == '$')
+         {
+            std::cerr << "ERROR: ntests = <" << optarg
+                      << "> has an unset environment variable" << std::endl;
+            exit (-1);
+         }
+
+         std::string ntests = hlsHelpers::expand_envs (optarg);
+         if (ntests.length() == 0)
+         {
+            std::cerr << "ERROR: ntests = <" << optarg << "> translation failed\n"
+                         "       This likely due to an undefined environment variable"
+                      << std::endl;
+            exit (-1);
+         }
+
+         m_ntests = std::stoi (ntests);
+         m_source = "CommandLine";
          break;
       }
+
+      case 's' :
+         m_source = optarg;
+         break;
       }
    }
 

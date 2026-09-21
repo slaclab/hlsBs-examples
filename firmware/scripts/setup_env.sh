@@ -68,11 +68,13 @@ function setup ()
     # the single quotes) and search <this>/Vitis for settings64.sh, e.g.
     #   hlsVersion 2025.2 -> /sdf/group/faders/tools/xilinx/2025.2/Vitis
     #
-    # The upstream hlsBs README recommends keeping site-specific absolute
-    # paths OUT of the repo (via a personal 'hlsLocate' alias). For an
-    # examples/tutorial repo, convenience wins: default it here so the
-    # tutorial runs out-of-the-box at SLAC, but ONLY when the user has
-    # not already defined it (an external hlsLocate alias still wins).
+    # The upstream hlsBs documentation recommends keeping site-specific
+    # absolute paths OUT of the repo (via a personal 'hlsToolChain' alias).
+    #
+    # For an examples/tutorial repo, convenience wins: default it here so
+    # the tutorial runs out-of-the-box at SLAC, but ONLY when the user has
+    # not already defined it (an external definition of HLSBS_XILINX_SETUP
+    # alias still wins).
     # ------------------------------------------------------------------
     if [[ -z "${HLSBS_XILINX_SETUP}" ]]; then
         local slac_xilinx='/sdf/group/faders/tools/xilinx'
@@ -107,6 +109,7 @@ function setup ()
     export ex3=${prj_root}/ex3/project/Streams.py
     export ex4=${prj_root}/ex4/project/Streams.py
     export ex5=${prj_root}/ex5/project/Streams.py
+    export ex6=${prj_root}/ex6/project/Streams.py
 
     # ---------------------------------------
     # Change to hlsBs-examples root directory
@@ -132,10 +135,10 @@ unset -f setup
 #  Shell function to select the example project
 #
 # Parameters
-#  The example to select, i.e. one of ex0, ex1, ex2, ex3, ex4, ex5
+#  The example to select, i.e. one of ex0, ex1, ex2, ex3, ex4, ex5, ex6
 #
 # Usage:
-#  $ exSelect [ ex0 | ex1 | ex2 | ex3 | ex4 | ex5 ]
+#  $ exSelect [ ex0 | ex1 | ex2 | ex3 | ex4 | ex5 | ex6 ]
 #
 # Example:
 #  $ exSelect ex1

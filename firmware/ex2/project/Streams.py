@@ -38,14 +38,23 @@ def get_products (project) :
                                       includes  = includes,
                                       defines   = None)
 
-    build     = Product.Build       (top        =   'doit',
-                                    tb         =  tb_srcs,
-                                    syn        = syn_srcs,
-                                    csim_argv  = "",
-                                    cosim_argv = "")
+    buildA    = Product.Build        (id         = 'streamA',
+                                      top        =   'doit',
+                                      tb         =  tb_srcs,
+                                      syn        = syn_srcs,
+                                      csim_argv  = "",
+                                      cosim_argv = "")
 
-    fpgas    = [ Product.Fpga ('xcku115-flvb2104-2-i', '6',  None, '6ns'),
-                 Product.Fpga ('xcku115-flvb2104-2-i', '5',  None, '5ns')]
+    buildB    = Product.Build        (id         = 'streamB',
+                                      top        =   'doit',
+                                      tb         =  tb_srcs,
+                                      syn        = syn_srcs,
+                                      csim_argv  = "",
+                                      cosim_argv = "")
+
+
+    fpgas    = [ Product.Fpga ('6ns', 'xcku115-flvb2104-2-i', '6',  None),
+                 Product.Fpga ('5ns', 'xcku115-flvb2104-2-i', '5',  None)]
 
     # ----------------------------------------------------------------
     # Create 4 components, 2 different builds, paired with the 2 Fpgas
@@ -53,16 +62,17 @@ def get_products (project) :
     #    streamB-6ns streamB-5ns
     #
     # Note: the 'build' and 'fpga' strings are the prefix of the
-    #       constructed logical names.
+    #       constructed product parameters.
     #
     #       See cfg_template which includes {build.id} and {fpga.id}
     #       The 'build' and 'fpga' prefixes are those strings.
     # ----------------------------------------------------------------
-    contributors = (Product.CtbBuilds ('build', [['streamA', build],
-                                                 ['streamB', build]]),
-                    Product.CtbFpgas  ( 'fpga',               fpgas))
+    ctb_builds   = Product.CtbBuilds ('build', (buildA, buildB))
+    ctb_fpgas    = Product.CtbFpgas  ( 'fpga',           fpgas)
+    contributors = Product.Contributors (ctb_builds, ctb_fpgas)
 
-    cfg_template = Product.CfgTemplate ('cfg', '{build.id}-{fpga.id}.cfg')
+
+    cfg_template = Product.CfgTemplate ('cfg', '{build.id}-{fpga.id}')
     cmp_template = Product.CmpTemplate ('cmp', '{cfg.name}')
 
     components   = Product.Components (contributors = contributors,
@@ -91,11 +101,11 @@ def get_products (project) :
 def get_ip (project) :
     ip = project.Ip \
     (
-        dir      =  os.path.join (project.products_root,
-                                  'ip', '{vitis_version}'),
-        zip_file = '{cmp.name}',
-        family   = ('artix7,kintex7,virtex7,zynq,kintexu,virtexu,kintexuplus,'
-                    'virtexuplus,virtexuplusHBM,zynqplus,zynquplusRFSOC,veral'),
+        #dir      =  os.path.join (project.products_root,
+        #                          'ip', '{vitis_version}'),
+        #zip_file = '{cmp.name}',
+        #family   = ('artix7,kintex7,virtex7,zynq,kintexu,virtexu,kintexuplus,'
+        #            'virtexuplus,virtexuplusHBM,zynqplus,zynquplusRFSOC,versal'),
 
         # The dcp rename pieces are
         #    dcp_rename : What to rename it to

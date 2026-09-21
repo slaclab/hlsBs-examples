@@ -34,6 +34,7 @@ Thumps.db
 build.info
 
 # Build directories
+products
 build*
 docs/_build/
 # Exception: documentation files whose names start with "build"
